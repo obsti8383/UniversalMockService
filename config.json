@@ -1,0 +1,6 @@
+{
+    "verbose": true,
+	"interfaceAndPort": ":50000",
+	"responseFile": "response.txt",
+    "responseContentType": "text/xml; charset=UTF-8"
+}
