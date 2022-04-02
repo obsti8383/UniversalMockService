@@ -1,5 +1,10 @@
 package main
 
+// Copyright 2022 obsti8383
+//
+// graceful server shutdown from https://github.com/carlmjohnson/gracefulserver/blob/master/server.go
+// MIT Licenced - Copyright (c) 2017 Carl Johnson
+
 import (
 	"context"
 	"encoding/json"
