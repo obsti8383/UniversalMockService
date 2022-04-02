@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -8,9 +9,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 const configFile = "config.json"
+const Timeout = 5 * time.Second // Timeout is the amount of time the server will wait for requests to finish during shutdown
 
 // Configuration is the struct that gets filled by reading config.json JSON file
 type Configuration struct {
@@ -37,7 +42,7 @@ func initConfig() (configuration Configuration, err error) {
 }
 
 func main() {
-	errorLogger := log.New(os.Stderr, "Error: ", 0)
+	errorLogger := log.New(os.Stderr, "", 0)
 	debugLogger := log.New(io.Discard, "", 0)
 
 	configuration, err := initConfig()
@@ -86,12 +91,37 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Starting mock service with interface \"" + configuration.InterfaceAndPort + "\" response file \"" + configuration.ResponseFile + "\" and response Content-Type \"" + configuration.ResponseContentType + "\"")
-	err = http.ListenAndServe(configuration.InterfaceAndPort, &App{configuration, errorLogger, debugLogger})
-	if err != nil {
-		errorLogger.Fatalf("Could not start server: %s\n", err.Error())
+	// init server struct
+	srv := &http.Server{Addr: configuration.InterfaceAndPort, Handler: &App{configuration, errorLogger, debugLogger}}
+
+	// subscribe to SIGINT signals
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// start listener
+	errc := make(chan error)
+	go func() {
+		errorLogger.Println("Starting mock service with interface \"" + configuration.InterfaceAndPort + "\" response file \"" + configuration.ResponseFile + "\" and response Content-Type \"" + configuration.ResponseContentType + "\"")
+		// service connections
+		errc <- srv.ListenAndServe()
+	}()
+
+	<-stopChan // wait for system signal
+	errorLogger.Println("Shutting down server...")
+
+	// shut down gracefully, but wait no longer than 5 seconds before halting
+	ctx, c := context.WithTimeout(context.Background(), Timeout)
+	defer c()
+	srv.Shutdown(ctx)
+
+	select {
+	case err := <-errc:
+		errorLogger.Printf("Finished listening: %v\n", err)
+	case <-ctx.Done():
+		errorLogger.Println("Graceful shutdown timed out")
 	}
 
+	errorLogger.Println("Server stopped")
 }
 
 // fileExists checks if a file exists
