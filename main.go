@@ -53,7 +53,7 @@ func main() {
 	configuration, err := initConfig()
 	if err != nil {
 		// remove Fatal() in case config JSON file is optional
-		debugLogger.Println(err.Error())
+		errorLogger.Fatalln(err.Error())
 	}
 	// check for mandatory configuration variables
 	if configuration.InterfaceAndPort == "" {
@@ -88,6 +88,10 @@ func main() {
 	if help {
 		printHelp(flags)
 		os.Exit(0)
+	}
+
+	if verbose {
+		debugLogger = log.New(os.Stderr, "DEBUG: ", 0)
 	}
 
 	// check if response file exists before starting server

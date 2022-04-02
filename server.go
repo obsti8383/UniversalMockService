@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
 )
 
 // App contains configuration parameters for the web server
@@ -14,11 +15,10 @@ type App struct {
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	b, _ := ioutil.ReadAll(r.Body)
+	requestDump, _ := httputil.DumpRequest(r, true)
 	defer r.Body.Close()
 
-	a.DebugLogger.Println("Request: \n", r)
-	a.DebugLogger.Printf("Body: \n%s", b)
+	a.DebugLogger.Println("Serving incoming request:\n", string(requestDump))
 
 	response, err := readResponseFromFile(a.Config.ResponseFile)
 	if err != nil {
