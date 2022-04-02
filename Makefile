@@ -13,7 +13,7 @@ vet: fmt
 .PHONY:vet
 
 build: vet
-	GOOS=linux GOARCH=amd64 go build .
+	GOOS=linux GOARCH=amd64 go build -tags netgo .
 	GOOS=windows GOARCH=amd64 go build .
 .PHONY:build
 
