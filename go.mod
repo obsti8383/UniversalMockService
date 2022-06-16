@@ -1,3 +1,3 @@
-module UniversalMockService
+module github.com/obsti8383/UniversalMockService
 
-go 1.17
+go 1.18
